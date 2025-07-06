@@ -20,6 +20,7 @@ type Config struct {
 	Port         string `mapstructure:"PORT"`
 	DBURL        string `mapstructure:"DB_URL"`
 	KafkaBrokers string `mapstructure:"KAFKA_BROKERS"`
+	ClickTopic   string `mapstructure:"CLICK_TOPIC"`
 }
 
 var ConfigInstance *Config
@@ -33,6 +34,7 @@ func init() {
 		Port:         os.Getenv("PORT"),
 		DBURL:        os.Getenv("DB_URL"),
 		KafkaBrokers: os.Getenv("KAFKA_BROKERS"),
+		ClickTopic:   os.Getenv("CLICK_TOPIC"),
 	}
 
 	// Set default values if not provided
@@ -109,4 +111,31 @@ func CloseKafkaConnection() {
 		KafkaProducer.Close()
 		log.Println("Kafka producer closed")
 	}
+}
+
+func GetKafkaConsumer(topic string) (*kafka.Consumer, error) {
+	//create a new consumer
+	consumer, err := kafka.NewConsumer(&kafka.ConfigMap{
+		"bootstrap.servers": ConfigInstance.KafkaBrokers,
+		"group.id":          "advertisement-management-consumer",
+		"auto.offset.reset": "earliest",
+		"topics":            topic,
+	})
+	if err != nil {
+		log.Println("Error creating Kafka consumer", err)
+	}
+	return consumer, nil
+}
+
+func PushMsgtoTopic(topic string, message []byte) error {
+	producer := GetKafkaProducer()
+	err := producer.Produce(&kafka.Message{
+		TopicPartition: kafka.TopicPartition{
+			Topic:     &topic,
+			Partition: kafka.PartitionAny,
+		},
+		Value: message,
+	}, nil)
+	producer.Flush(1000)
+	return err
 }

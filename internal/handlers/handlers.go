@@ -10,5 +10,6 @@ var Router *gin.Engine
 
 func InitHandlers() {
 	Router.GET("/ads", services.GetAds)
-	Router.POST("/ads/click", services.GetAds)
+	Router.POST("/ads/click", services.SaveClick)
+	Router.GET("/ads/analytics", services.GetAnalytics)
 }
